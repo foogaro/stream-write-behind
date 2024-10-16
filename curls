@@ -1,0 +1,39 @@
+curl -X POST http://localhost:8080/api/employers \
+-H "Content-Type: application/json" \
+-d '{
+  "id": 1,
+  "name": "Tech Solutions Ltd.",
+  "address": "1234 Innovation Way, Tech City",
+  "email": "contact@techsolutions.com",
+  "phone": "9876543210"
+}'
+
+curl -X POST http://localhost:8080/api/employers \
+-H "Content-Type: application/json" \
+-d '{
+  "id": 2,
+  "name": "Updated Tech Solutions Ltd.",
+  "address": "5678 Future Drive, Innovation City",
+  "email": "newcontact@techsolutions.com",
+  "phone": "1122334455"
+}'
+
+curl -X POST http://localhost:8080/api/employers \
+-H "Content-Type: application/json" \
+-d '{
+  "id": 3,
+  "name": "3Updated Tech Solutions Ltd.",
+  "address": "35678 Future Drive, Innovation City",
+  "email": "3newcontact@techsolutions.com",
+  "phone": "3122334455"
+}'
+
+curl -X PUT http://localhost:8080/api/employers/1 \
+-H "Content-Type: application/json" \
+-d '{
+  "name": "Updated Tech Solutions Ltd.",
+  "address": "5678 Future Drive, Innovation City",
+  "email": "newcontact@techsolutions.com",
+  "phone": "1122334455"
+}'
+

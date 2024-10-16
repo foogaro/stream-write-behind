@@ -1,0 +1,1 @@
+docker run -it --rm=true --name=redis -p 6379:6379 -p 8001:8001 redis/redis-stack-server:7.2.0-v10

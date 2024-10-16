@@ -1,0 +1,1 @@
+docker run -it --rm=true --name=mysql -e MYSQL_DATABASE=redis -e MYSQL_USER=redis -e MYSQL_PASSWORD=redis -e MYSQL_ROOT_PASSWORD=root -p 3306:3306 mysql:8.4.2
