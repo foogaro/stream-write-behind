@@ -37,3 +37,4 @@ curl -X PUT http://localhost:8080/api/employers/1 \
   "phone": "1122334455"
 }'
 
+curl -X DELETE http://localhost:8080/api/employers/3

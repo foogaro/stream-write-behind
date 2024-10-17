@@ -1,4 +1,4 @@
-package com.foogaro.redis.service;
+package com.foogaro.redis.service.jpa;
 
 import com.foogaro.redis.entity.Employer;
 import com.foogaro.redis.repository.jpa.JpaEmployerRepository;
@@ -9,28 +9,28 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
-public class EmployerService {
+public class JpaEmployerService {
 
     @Autowired
-    private JpaEmployerRepository employerRepository;
+    private JpaEmployerRepository repository;
 
     public List<Employer> getAllEmployers() {
-        return employerRepository.findAll();
+        return repository.findAll();
     }
 
     public Optional<Employer> getEmployerById(Long id) {
-        return employerRepository.findById(id);
+        return repository.findById(id);
     }
 
     public Employer saveEmployer(Employer employer) {
-        return employerRepository.save(employer);
+        return repository.save(employer);
     }
 
     public void deleteEmployer(Long id) {
-        employerRepository.deleteById(id);
+        repository.deleteById(id);
     }
 
     public Employer getEmployerByEmail(String email) {
-        return employerRepository.findByEmail(email);
+        return repository.findByEmail(email);
     }
 }

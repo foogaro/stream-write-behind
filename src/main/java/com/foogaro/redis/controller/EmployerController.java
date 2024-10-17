@@ -1,7 +1,7 @@
 package com.foogaro.redis.controller;
 
 import com.foogaro.redis.entity.Employer;
-import com.foogaro.redis.service.RedisEmployerService;
+import com.foogaro.redis.service.redis.RedisEmployerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

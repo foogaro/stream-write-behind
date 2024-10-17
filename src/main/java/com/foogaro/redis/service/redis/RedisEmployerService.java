@@ -1,7 +1,8 @@
-package com.foogaro.redis.service;
+package com.foogaro.redis.service.redis;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.foogaro.redis.config.Consts;
 import com.foogaro.redis.entity.Employer;
 import com.foogaro.redis.repository.redis.RedisEmployerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +14,8 @@ import redis.clients.jedis.StreamEntryID;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+
+import static com.foogaro.redis.config.Consts.*;
 
 @Service
 public class RedisEmployerService {
@@ -41,10 +44,10 @@ public class RedisEmployerService {
         try {
             String json = objectMapper.writeValueAsString(employer);
             Map<String, String> map = new HashMap<>();
-            map.put("json", json);
+            map.put(EVENT_CONTENT_KEY, json);
             Pipeline pipeline = jedis.pipelined();
             pipeline.set(employer.getId().toString(), json);
-            pipeline.xadd("stream-write-behind", StreamEntryID.NEW_ENTRY, map);
+            pipeline.xadd(EMPLOYER_STREAM_KEY, StreamEntryID.NEW_ENTRY, map);
             pipeline.sync();
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
@@ -53,11 +56,11 @@ public class RedisEmployerService {
 
     public void deleteEmployer(Long id) {
         Map<String, String> map = new HashMap<>();
-        map.put("json", id.toString());
-        map.put("opt", "del");
+        map.put(EVENT_CONTENT_KEY, id.toString());
+        map.put(EVENT_OPERATION_KEY, DELETE_OPERATION_KEY);
         Pipeline pipeline = jedis.pipelined();
         pipeline.del(id.toString());
-        pipeline.xadd("stream-write-behind", StreamEntryID.NEW_ENTRY, map);
+        pipeline.xadd(Consts.EMPLOYER_STREAM_KEY, StreamEntryID.NEW_ENTRY, map);
         pipeline.sync();
     }
 
