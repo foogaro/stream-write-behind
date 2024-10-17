@@ -1,6 +1,9 @@
 package com.foogaro.redis.entity;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import org.springframework.data.redis.core.RedisHash;
 
 @RedisHash("employer")
@@ -9,7 +12,7 @@ import org.springframework.data.redis.core.RedisHash;
 public class Employer {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)  // Auto-increment primary key
+//    @GeneratedValue(strategy = GenerationType.IDENTITY)  // Auto-increment primary key
     private Long id;
 
     @Column(name = "name", nullable = false)
