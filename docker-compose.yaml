@@ -1,0 +1,71 @@
+services:
+  mysql:
+    image: mysql:8.4.2
+    container_name: mysql
+    hostname: mysql
+    restart: unless-stopped
+    environment:
+      - MYSQL_DATABASE=redis
+      - MYSQL_USER=redis
+      - MYSQL_PASSWORD=redis
+      - MYSQL_ROOT_PASSWORD=root
+    expose:
+      - 3306
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
+      interval: 30s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      demo:
+        ipv4_address: 172.32.0.2
+  redis:
+    image: redis/redis-stack:7.4.0-v1
+    container_name: redis
+    hostname: redis
+    restart: unless-stopped
+    cap_add:
+      - SYS_RESOURCE
+    expose:
+      - 6379
+    ports:
+      - "6379:6379"
+    stdin_open: true
+    tty: true
+    networks:
+      demo:
+        ipv4_address: 172.32.0.3
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: foogaro/stream-write-behind-app:1.0.0
+    image: foogaro/stream-write-behind-app:1.0.0
+    container_name: app
+    hostname: app
+    restart: unless-stopped
+    depends_on:
+      - mysql
+      - redis
+    cap_add:
+      - SYS_RESOURCE
+    expose:
+      - 8080
+    ports:
+      - "8080:8080"
+    stdin_open: true
+    tty: true
+    networks:
+      demo:
+        ipv4_address: 172.32.0.4
+networks:
+  demo:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.32.0.0/16
+          gateway: 172.32.0.1

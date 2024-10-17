@@ -1,6 +1,7 @@
 package com.foogaro.redis.config;
 
 import com.redis.om.spring.annotations.EnableRedisEnhancedRepositories;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -19,17 +20,20 @@ import java.time.Duration;
 @EnableRedisEnhancedRepositories(basePackages = "com.foogaro.redis.repository.redis.*")
 public class RedisConfiguration {
 
+    @Value("${spring.data.redis.host}") private String redis_host;
+    @Value("${spring.data.redis.port}") private Integer redis_port;
+
     @Bean
     public JedisConnectionFactory redisConnectionFactory() {
         RedisStandaloneConfiguration config = new RedisStandaloneConfiguration();
-        config.setHostName("localhost");
-        config.setPort(6379);
+        config.setHostName(redis_host);
+        config.setPort(redis_port);
         return new JedisConnectionFactory(config);
     }
 
     @Bean
     public Jedis jedis() {
-        return new Jedis("localhost", 6379);
+        return new Jedis(redis_host, redis_port);
     }
 
     @Bean

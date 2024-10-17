@@ -1,4 +1,4 @@
-FROM openjdk:21 as build
+FROM openjdk:21 AS build
 LABEL authors="foogaro"
 
 WORKDIR /app
@@ -19,13 +19,13 @@ RUN jlink --add-modules $(cat modules.txt) --strip-debug --no-man-pages --no-hea
 
 FROM debian:buster-slim
 ENV JAVA_HOME=/opt/java/openjdk
-ENV PATH "${JAVA_HOME}/bin:${PATH}"
+ENV PATH="${JAVA_HOME}/bin:${PATH}"
 COPY --from=build /app/javaruntime $JAVA_HOME
 
 WORKDIR /app
 COPY --from=build /app/app.jar app.jar
 
 EXPOSE 8080
-ENTRYPOINT ["java","-server", "-Xms1g", "-Xmx1g", "-Xss1024k", "-XX:MaxMetaspaceSize=1g","-jar"]
+ENTRYPOINT ["java","-server", "-Xms1g", "-Xmx1g", "-Xss1024k", "-XX:MaxMetaspaceSize=1g", "-Djdk.tls.client.protocols=TLSv1.2", "-jar"]
 
 CMD ["/app/app.jar"]
