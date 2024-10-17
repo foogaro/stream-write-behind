@@ -27,8 +27,8 @@ public class RedisStreamListenerComponent {
 
     private final StreamMessageListenerContainer<String, MapRecord<String, String, String>> streamMessageListenerContainer;
     //StreamListener<String, MapRecord<String, String, String>> streamListener;
-    public RedisStreamListenerComponent(StreamMessageListenerContainer<String, MapRecord<String, String, String>> streamMessageListenerContainer,
-                                        StreamListener<String, MapRecord<String, String, String>> streamListener) {
+    public RedisStreamListenerComponent(StreamMessageListenerContainer<String, MapRecord<String, String, String>> streamMessageListenerContainer) {
+//                                        StreamListener<String, MapRecord<String, String, String>> streamListener) {
         this.streamMessageListenerContainer = streamMessageListenerContainer;
         //this.streamListener = streamListener;
     }
