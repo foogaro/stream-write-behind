@@ -1,10 +1,10 @@
-package com.foogaro.redis.service.redis;
+package com.foogaro.redis.demo.service.redis;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.foogaro.redis.config.Consts;
-import com.foogaro.redis.entity.Employer;
-import com.foogaro.redis.repository.redis.RedisEmployerRepository;
+import com.foogaro.redis.demo.config.Consts;
+import com.foogaro.redis.demo.entity.Employer;
+import com.foogaro.redis.demo.repository.redis.RedisEmployerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import redis.clients.jedis.Jedis;
@@ -14,7 +14,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-import static com.foogaro.redis.config.Consts.*;
+import static com.foogaro.redis.demo.config.Consts.*;
 
 @Service
 public class RedisEmployerService {

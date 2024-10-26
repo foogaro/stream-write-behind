@@ -1,7 +1,7 @@
-package com.foogaro.redis.service.jpa;
+package com.foogaro.redis.demo.service.jpa;
 
-import com.foogaro.redis.entity.Employer;
-import com.foogaro.redis.repository.jpa.JpaEmployerRepository;
+import com.foogaro.redis.demo.entity.Employer;
+import com.foogaro.redis.demo.repository.jpa.JpaEmployerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

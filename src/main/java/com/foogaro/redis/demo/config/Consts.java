@@ -1,4 +1,4 @@
-package com.foogaro.redis.config;
+package com.foogaro.redis.demo.config;
 
 public class Consts {
 

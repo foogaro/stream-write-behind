@@ -1,6 +1,6 @@
-package com.foogaro.redis.repository.redis;
+package com.foogaro.redis.demo.repository.redis;
 
-import com.foogaro.redis.entity.Employer;
+import com.foogaro.redis.demo.entity.Employer;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
 

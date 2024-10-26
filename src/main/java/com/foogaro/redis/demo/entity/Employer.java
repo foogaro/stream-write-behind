@@ -1,4 +1,4 @@
-package com.foogaro.redis.entity;
+package com.foogaro.redis.demo.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

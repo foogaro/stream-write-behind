@@ -1,10 +1,10 @@
-package com.foogaro.redis.listener.redis;
+package com.foogaro.redis.demo.listener.jpa;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.foogaro.redis.config.Consts;
-import com.foogaro.redis.entity.Employer;
-import com.foogaro.redis.service.redis.RedisEmployerService;
+import com.foogaro.redis.demo.config.Consts;
+import com.foogaro.redis.demo.entity.Employer;
+import com.foogaro.redis.demo.service.jpa.JpaEmployerService;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,12 +19,12 @@ import org.springframework.stereotype.Component;
 import java.util.Map;
 
 @Component
-public class RedisEmployerStreamListener {
+public class JpaEmployerStreamListener {
 
     private Logger logger = LoggerFactory.getLogger(getClass());
 
     @Autowired
-    private RedisEmployerService redisEmployerService;
+    private JpaEmployerService jpaEmployerService;
 
     @Autowired
     private StreamMessageListenerContainer<String, MapRecord<String, String, String>> streamMessageListenerContainer;
@@ -45,14 +45,14 @@ public class RedisEmployerStreamListener {
                 logger.info("Operation: {}", operation);
                 if (operation != null) {
                     if (operation.equalsIgnoreCase(Consts.DELETE_OPERATION_KEY)) {
-                        redisEmployerService.deleteEmployer(Long.valueOf(content));
+                        jpaEmployerService.deleteEmployer(Long.valueOf(content));
                     }
                 } else {
                     ObjectMapper objectMapper = new ObjectMapper();
                     try {
                         Employer employer = objectMapper.readValue(content, Employer.class);
                         logger.info("Redis Employer: {}", employer);
-                        redisEmployerService.saveEmployer(employer);
+                        employer = jpaEmployerService.saveEmployer(employer);
                         logger.info("Jpa Employer: {}", employer);
                     } catch (JsonProcessingException e) {
                         throw new RuntimeException(e);

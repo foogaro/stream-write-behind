@@ -1,4 +1,4 @@
-package com.foogaro.redis.config;
+package com.foogaro.redis.demo.config;
 
 import com.redis.om.spring.annotations.EnableRedisEnhancedRepositories;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,7 +17,7 @@ import redis.clients.jedis.Jedis;
 import java.time.Duration;
 
 @Configuration
-@EnableRedisEnhancedRepositories(basePackages = "com.foogaro.redis.repository.redis.*")
+@EnableRedisEnhancedRepositories(basePackages = "com.foogaro.redis.demo.repository.redis.*")
 public class RedisConfiguration {
 
     @Value("${spring.data.redis.host}") private String redis_host;
