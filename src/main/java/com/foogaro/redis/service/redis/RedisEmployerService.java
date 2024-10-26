@@ -8,7 +8,6 @@ import com.foogaro.redis.repository.redis.RedisEmployerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import redis.clients.jedis.Jedis;
-import redis.clients.jedis.Pipeline;
 import redis.clients.jedis.StreamEntryID;
 
 import java.util.HashMap;
@@ -45,10 +44,7 @@ public class RedisEmployerService {
             String json = objectMapper.writeValueAsString(employer);
             Map<String, String> map = new HashMap<>();
             map.put(EVENT_CONTENT_KEY, json);
-            Pipeline pipeline = jedis.pipelined();
-            pipeline.set(employer.getId().toString(), json);
-            pipeline.xadd(EMPLOYER_STREAM_KEY, StreamEntryID.NEW_ENTRY, map);
-            pipeline.sync();
+            jedis.xadd(EMPLOYER_STREAM_KEY, StreamEntryID.NEW_ENTRY, map);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
@@ -58,10 +54,7 @@ public class RedisEmployerService {
         Map<String, String> map = new HashMap<>();
         map.put(EVENT_CONTENT_KEY, id.toString());
         map.put(EVENT_OPERATION_KEY, DELETE_OPERATION_KEY);
-        Pipeline pipeline = jedis.pipelined();
-        pipeline.del(id.toString());
-        pipeline.xadd(Consts.EMPLOYER_STREAM_KEY, StreamEntryID.NEW_ENTRY, map);
-        pipeline.sync();
+        jedis.xadd(Consts.EMPLOYER_STREAM_KEY, StreamEntryID.NEW_ENTRY, map);
     }
 
 }
