@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.foogaro.redis.config.Consts;
 import com.foogaro.redis.entity.Employer;
-import com.foogaro.redis.service.jpa.JpaEmployerService;
 import com.foogaro.redis.service.redis.RedisEmployerService;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
