@@ -32,7 +32,7 @@ public class EmployerController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity updateEmployer(@PathVariable Long id, @RequestBody Employer updatedEmployer) {
+    public ResponseEntity<Void> updateEmployer(@PathVariable Long id, @RequestBody Employer updatedEmployer) {
         Optional<Employer> existingEmployerOpt = redisEmployerService.findById(id);
         if (existingEmployerOpt.isPresent()) {
             Employer existingEmployer = existingEmployerOpt.get();

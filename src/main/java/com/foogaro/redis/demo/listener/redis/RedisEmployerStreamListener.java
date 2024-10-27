@@ -13,7 +13,6 @@ import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.connection.stream.StreamOffset;
 import org.springframework.data.redis.stream.StreamListener;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer;
-import org.springframework.data.redis.stream.Subscription;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
@@ -37,11 +36,11 @@ public class RedisEmployerStreamListener {
                 logger.info("Received message: {}", message.getValue());
                 String stream = message.getStream();
                 logger.info("Stream: {}", stream);
-                Map map = message.getValue();
+                Map<String, String> map = message.getValue();
                 logger.info("Message: {}", map);
-                String content = (String) map.get(Consts.EVENT_CONTENT_KEY);
+                String content = map.get(Consts.EVENT_CONTENT_KEY);
                 logger.info("Content: {}", content);
-                String operation = (String) map.get(Consts.EVENT_OPERATION_KEY);
+                String operation = map.get(Consts.EVENT_OPERATION_KEY);
                 logger.info("Operation: {}", operation);
                 if (operation != null) {
                     if (operation.equalsIgnoreCase(Consts.DELETE_OPERATION_KEY)) {
@@ -61,7 +60,7 @@ public class RedisEmployerStreamListener {
             }
         };
 
-        Subscription subscription = streamMessageListenerContainer.receive(StreamOffset.latest(Consts.EMPLOYER_STREAM_KEY),
+        streamMessageListenerContainer.receive(StreamOffset.latest(Consts.EMPLOYER_STREAM_KEY),
                 streamListener);
 
         streamMessageListenerContainer.start();
