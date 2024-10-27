@@ -1,68 +1,34 @@
 package com.foogaro.redis.demo.listener.jpa;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.foogaro.redis.demo.config.Consts;
+import com.foogaro.redis.core.listener.AbstractStreamListener;
 import com.foogaro.redis.demo.entity.Employer;
-import com.foogaro.redis.demo.service.jpa.JpaEmployerService;
-import jakarta.annotation.PostConstruct;
+import com.foogaro.redis.demo.repository.jpa.JpaEmployerRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.connection.stream.MapRecord;
-import org.springframework.data.redis.connection.stream.StreamOffset;
-import org.springframework.data.redis.stream.StreamListener;
-import org.springframework.data.redis.stream.StreamMessageListenerContainer;
 import org.springframework.stereotype.Component;
 
-import java.util.Map;
-
 @Component
-public class JpaEmployerStreamListener {
+public class JpaEmployerStreamListener extends AbstractStreamListener<Employer, JpaEmployerRepository> {
 
     private Logger logger = LoggerFactory.getLogger(getClass());
 
     @Autowired
-    private JpaEmployerService jpaEmployerService;
+    private JpaEmployerRepository employerRepository;
 
-    @Autowired
-    private StreamMessageListenerContainer<String, MapRecord<String, String, String>> streamMessageListenerContainer;
-
-    @PostConstruct
-    public void startListening() {
-        StreamListener<String, MapRecord<String, String, String>> streamListener = new StreamListener<>() {
-            @Override
-            public void onMessage(MapRecord<String, String, String> message) {
-                logger.info("Received message: {}", message.getValue());
-                String stream = message.getStream();
-                logger.info("Stream: {}", stream);
-                Map<String, String> map = message.getValue();
-                logger.info("Message: {}", map);
-                String content = map.get(Consts.EVENT_CONTENT_KEY);
-                logger.info("Content: {}", content);
-                String operation = (String) map.get(Consts.EVENT_OPERATION_KEY);
-                logger.info("Operation: {}", operation);
-                if (operation != null) {
-                    if (operation.equalsIgnoreCase(Consts.DELETE_OPERATION_KEY)) {
-                        jpaEmployerService.deleteEmployer(Long.valueOf(content));
-                    }
-                } else {
-                    ObjectMapper objectMapper = new ObjectMapper();
-                    try {
-                        Employer employer = objectMapper.readValue(content, Employer.class);
-                        logger.info("Redis Employer: {}", employer);
-                        employer = jpaEmployerService.saveEmployer(employer);
-                        logger.info("Jpa Employer: {}", employer);
-                    } catch (JsonProcessingException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            }
-        };
-
-        streamMessageListenerContainer.receive(StreamOffset.latest(Consts.EMPLOYER_STREAM_KEY),
-                streamListener);
-
-        streamMessageListenerContainer.start();
+    @Override
+    protected JpaEmployerRepository getRepository() {
+        return employerRepository;
     }
+
+    @Override
+    protected void deleteEntity(Long id) {
+        employerRepository.deleteById(id);
+    }
+
+    @Override
+    protected Employer saveEntity(Employer entity) {
+        return employerRepository.save(entity);
+    }
+
 }

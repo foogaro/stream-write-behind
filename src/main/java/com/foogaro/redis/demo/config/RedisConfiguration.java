@@ -1,6 +1,5 @@
 package com.foogaro.redis.demo.config;
 
-import com.redis.om.spring.annotations.EnableRedisEnhancedRepositories;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -9,6 +8,7 @@ import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
 import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.repository.configuration.EnableRedisRepositories;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.GenericToStringSerializer;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer;
@@ -17,7 +17,7 @@ import redis.clients.jedis.Jedis;
 import java.time.Duration;
 
 @Configuration
-@EnableRedisEnhancedRepositories(basePackages = "com.foogaro.redis.demo.repository.redis.*")
+@EnableRedisRepositories(basePackages = "com.foogaro.redis.demo.repository.redis")
 public class RedisConfiguration {
 
     @Value("${spring.data.redis.host}") private String redis_host;
