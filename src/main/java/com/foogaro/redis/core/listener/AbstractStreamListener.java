@@ -2,11 +2,14 @@ package com.foogaro.redis.core.listener;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.foogaro.redis.core.Misc;
+import com.foogaro.redis.core.exception.AcknowledgeMessageException;
+import com.foogaro.redis.core.exception.ProcessMessageException;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Range;
 import org.springframework.data.redis.connection.stream.*;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -14,10 +17,12 @@ import org.springframework.data.redis.stream.StreamMessageListenerContainer;
 import org.springframework.scheduling.annotation.Scheduled;
 
 import java.lang.reflect.ParameterizedType;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static com.foogaro.redis.core.Misc.*;
 
@@ -25,8 +30,15 @@ public abstract class AbstractStreamListener<T, R> implements StreamListener {
 
     private Logger logger = LoggerFactory.getLogger(getClass());
 
+    @Value("${wb.stream.listener.pel.attempts:3}")
+    protected int MAX_RETRY_ATTEMPTS;
+    @Value("${wb.stream.listener.pel.timeout:10000}")
+    protected long PENDING_MESSAGE_TIMEOUT;
+    @Value("${wb.stream.listener.pel.size:50}")
+    protected int BATCH_SIZE;
+
     @Autowired
-    private RedisTemplate redisTemplate;
+    private RedisTemplate<String, String> redisTemplate;
 
     @Autowired
     protected StreamMessageListenerContainer<String, MapRecord<String, String, String>> streamMessageListenerContainer;
@@ -38,7 +50,7 @@ public abstract class AbstractStreamListener<T, R> implements StreamListener {
     private final Class<R> repositoryClass;
 
     protected abstract R getRepository();
-    protected abstract void deleteEntity(Long id);
+    protected abstract void deleteEntity(Object id);
     protected abstract T saveEntity(T entity);
 
     @SuppressWarnings("unchecked")
@@ -67,18 +79,6 @@ public abstract class AbstractStreamListener<T, R> implements StreamListener {
         return this.entityClass.getSimpleName().toLowerCase() + "_" + getRepositoryClass().getSimpleName().toLowerCase() + "_consumer";
     }
 
-    public void onMessage(MapRecord<String, String, String> message) {
-        String messageId = message.getId().getValue();
-        logger.info("Processing message with ID: {}", messageId);
-        try {
-            processMessage(message);
-            acknowledgeMessage(message);
-        } catch (Exception e) {
-            logger.error("Error processing message: {}", messageId, e);
-            handleMessageError(message, e);
-        }
-    }
-
     @PostConstruct
     public void startListening() {
         logger.info("Starting to listen on stream {} for entity {} managed by repository {}", getStreamKey(), getEntityClass().getSimpleName(), getRepositoryClass().getSimpleName());
@@ -93,7 +93,7 @@ public abstract class AbstractStreamListener<T, R> implements StreamListener {
                             .in(getStreamKey())
                             .ofMap(Collections.singletonMap("init", "true")));
 
-                    redisTemplate.opsForStream().createGroup(getStreamKey(), getConsumerGroup());
+                    redisTemplate.opsForStream().createGroup(getStreamKey(), ReadOffset.lastConsumed(), getConsumerGroup());
                     logger.info("Stream {} and consumer group {} created", getStreamKey(), getConsumerGroup());
                 } else {
                     throw e;
@@ -106,58 +106,65 @@ public abstract class AbstractStreamListener<T, R> implements StreamListener {
                 this::onMessage
         );
 
-//        streamMessageListenerContainer.receive(StreamOffset.latest(getStreamKey()), this::onMessage);
         streamMessageListenerContainer.start();
         logger.info("Listener started for stream {} for entity {} managed by repository {}", getStreamKey(), getEntityClass().getSimpleName(), getRepositoryClass().getSimpleName());
     }
 
-    private void processMessage(MapRecord<String, String, String> message) throws Exception {
-        logger.info("Received message: {}", message.getValue());
-        String stream = message.getStream();
-        logger.info("Stream: {}", stream);
-        Map<String, String> map = message.getValue();
-        logger.info("Message: {}", map);
-        String content = map.get(EVENT_CONTENT_KEY);
-        logger.info("Content: {}", content);
-        String operation = map.get(EVENT_OPERATION_KEY);
-        logger.info("Operation: {}", operation);
-        if (operation != null && operation.equalsIgnoreCase(DELETE_OPERATION_KEY)) {
-            deleteEntity(Long.valueOf(content));
+    private void dumpMessage(MapRecord<String, String, String> message) {
+        try {
+            logger.debug("Stream ID: {}", message.getStream());
+            logger.debug("Message ID: {}", message.getId());
+            logger.debug("Message.Content: {}", message.getValue().get(EVENT_CONTENT_KEY));
+            logger.debug("Message.Operation: {}", message.getValue().get(EVENT_OPERATION_KEY));
+        } catch (Exception e) {
+            logger.error("Error dumping message: {}", message, e);
+        }
+    }
+
+    public void onMessage(MapRecord<String, String, String> message) {
+        dumpMessage(message);
+        logger.info("Receiving message with ID {} from Stream {}.", message.getId(), message.getStream());
+        try {
+            processMessage(message);
+            acknowledgeMessage(message);
+        } catch (ProcessMessageException | AcknowledgeMessageException e) {
+            logger.error("Error receiving message ID {} for Stream {} - {}", message.getId(), message.getStream(), message.getValue());
+            logger.error("Error: ", e.getMessage());
+        }
+    }
+
+    private void processMessage(MapRecord<String, String, String> message) throws ProcessMessageException {
+        logger.debug("Processing message: {}", message.getId());
+        String operation = message.getValue().get(EVENT_OPERATION_KEY);
+        if (Misc.Operation.DELETE.getValue().equalsIgnoreCase(operation)) {
+            deleteEntity(message.getValue().get(EVENT_CONTENT_KEY));
         } else {
             try {
-                T entity = objectMapper.readValue(content, getEntityClass());
-                logger.info("Entity from Stream: {}", entity);
+                T entity = objectMapper.readValue(message.getValue().get(EVENT_CONTENT_KEY), getEntityClass());
+                logger.debug("Entity from Stream: {}", entity);
                 entity = saveEntity(entity);
-                logger.info("Entity {} saved {} by repository {}", getEntityClass(), entity, AopUtils.getTargetClass(getRepositoryClass()).getSimpleName());
+                logger.debug("Entity {} saved {} by repository {}", getEntityClass(), entity, AopUtils.getTargetClass(getRepositoryClass()).getSimpleName());
             } catch (Exception e) {
-                throw new RuntimeException(e);
+                // will be picked up by the processPendingMessages method
+                throw new ProcessMessageException(e);
             }
         }
+        logger.info("Processed message: {}", message.getId());
     }
 
-    private void acknowledgeMessage(MapRecord<String, String, String> message) {
+    private void acknowledgeMessage(MapRecord<String, String, String> message) throws AcknowledgeMessageException {
         try {
+            logger.debug("Acknowledging message: {}", message.getId());
             redisTemplate.opsForStream().acknowledge(getConsumerGroup(), message);
-            logger.info("Message {} acknowledged", message.getId());
+            logger.info("Acknowledged message: {}", message.getId());
         } catch (Exception e) {
             logger.error("Error acknowledging message: {}", message.getId(), e);
-            throw new RuntimeException("Failed to acknowledge message", e);
+            // will be picked up by the processPendingMessages method
+            throw new AcknowledgeMessageException(e);
         }
     }
 
-    private void handleMessageError(MapRecord<String, String, String> message, Exception e) {
-        String messageId = message.getId().getValue();
-        logger.error("Message {} processing failed", messageId, e);
-
-        try {
-            redisTemplate.opsForStream().acknowledge(getConsumerGroup(), message);
-            logger.info("Failed message {} acknowledged", messageId);
-        } catch (Exception ackError) {
-            logger.error("Error acknowledging failed message: {}", messageId, ackError);
-        }
-    }
-
-    @Scheduled(fixedDelay = 60000)
+    @Scheduled(fixedDelay = 5000)
     public void processPendingMessages() {
         String streamKey = getStreamKey();
         String groupName = getConsumerGroup();
@@ -175,58 +182,119 @@ public abstract class AbstractStreamListener<T, R> implements StreamListener {
                         .pending(streamKey,
                                 Consumer.from(groupName, consumerName),
                                 Range.unbounded(),
-                                50);
+                                BATCH_SIZE);
 
                 if (pendingMessages != null) {
                     for (PendingMessage pm : pendingMessages) {
                         String messageId = pm.getIdAsString();
                         long elapsedTime = pm.getElapsedTimeSinceLastDelivery().toMillis();
+                        logger.info("Message ID {} re-processing", messageId);
 
-                        if (elapsedTime > 300000) {
-                            List<MapRecord<String, String, String>> messages =
+                        MapRecord<String, String, String> message = null;
+                            List<MapRecord<String, Object, Object>> rawMessages =
                                     redisTemplate.opsForStream().range(streamKey,
                                             Range.closed(messageId, messageId));
+                        List<MapRecord<String, String, String>> messages =
+                                rawMessages
+                                .stream()
+                                .map(this::convertMapRecord)
+                                .collect(Collectors.toList());
 
-                            if (!messages.isEmpty()) {
-                                MapRecord<String, String, String> message = messages.get(0);
-
-                                try {
-                                    processMessage(message);
-                                    acknowledgeMessage(message);
-                                    logger.info("Successfully processed pending message: {}", messageId);
-                                } catch (Exception e) {
-                                    logger.error("Error processing pending message: {}", messageId, e);
-                                    if (pm.getTotalDeliveryCount() > 3) {
-                                        handleDeadLetter(message, e);
-                                    }
+                        if (!messages.isEmpty()) {
+                            message = messages.get(0);
+                            Long counter = incrementCounterKey(getCounterKey(message.getId().getValue()));
+                            logger.debug("Attempts: {} - Elapsed time: {}", counter, elapsedTime);
+                            if (counter > MAX_RETRY_ATTEMPTS) {
+                                ProcessMessageException e = new ProcessMessageException("Too many attempts");
+                                handleMessageFailure(message, e, getCounterKey(message.getId().getValue()));
+                                throw new RuntimeException(e);
+                            }
+                            if (elapsedTime > PENDING_MESSAGE_TIMEOUT) {
+                                ProcessMessageException e = new ProcessMessageException("Long lasting message");
+                                handleMessageFailure(message, e, getCounterKey(message.getId().getValue()));
+                                throw new RuntimeException(e);
+                            }
+                            try {
+                                processMessage(message);
+                                acknowledgeMessage(message);
+                                expireCounterKey(getCounterKey(message.getId().getValue()));
+                                logger.info("Successfully processed pending message: {}", messageId);
+                            } catch (ProcessMessageException e) {
+                                logger.error("Error processing pending message: {}", messageId, e.getMessage());
+                                if (counter > MAX_RETRY_ATTEMPTS) {
+                                    handleMessageFailure(message, new RuntimeException(e), getCounterKey(message.getId().getValue()));
+                                    throw new RuntimeException(e);
+                                }
+                            } catch (AcknowledgeMessageException e) {
+                                if (counter > MAX_RETRY_ATTEMPTS) {
+                                    handleMessageFailure(message, new RuntimeException(e), getCounterKey(message.getId().getValue()));
+                                    throw new RuntimeException(e);
                                 }
                             }
                         }
                     }
                 }
+            } else {
+                logger.debug("Pending messages not found for group {}", groupName);
             }
         } catch (Exception e) {
-            logger.error("Error processing pending messages", e);
+            logger.error("Error processing pending messages: {}", e.getMessage());
         }
     }
-    private void handleDeadLetter(MapRecord<String, String, String> message, Exception e) {
+
+    private void handleMessageFailure(MapRecord<String, String, String> message,
+                                      Exception cause,
+                                      String counterKey) {
+        handleDLQ(message, cause);
+        expireCounterKey(counterKey);
+    }
+
+    private Boolean expireCounterKey(String counterKey) {
+        return redisTemplate.expire(counterKey, Duration.ZERO);
+    }
+
+    private Long incrementCounterKey(String counterKey) {
+        return redisTemplate.opsForValue().increment(counterKey);
+    }
+
+    private String getCounterKey(String id) {
+        return getStreamKey()+":"+id;
+    }
+
+    private MapRecord<String, String, String> convertMapRecord(MapRecord<String, Object, Object> record) {
+        Map<String, String> convertedMap = new HashMap<>();
+        record.getValue().forEach((k, v) -> {
+            convertedMap.put(String.valueOf(k),String.valueOf(v));
+        });
+
+        StreamRecords.RecordBuilder rb = StreamRecords.newRecord();
+        return rb.withId(record.getId()).ofMap(convertedMap).withStreamKey(record.getStream());
+    }
+
+    private void handleDLQ(MapRecord<String, String, String> message, Exception e) {
         try {
-            String deadLetterKey = getStreamKey() + ":dead_letter";
-            Map<String, String> deadLetterMessage = new HashMap<>(message.getValue());
-            deadLetterMessage.put("error", e.getMessage());
-            deadLetterMessage.put("timestamp", String.valueOf(System.currentTimeMillis()));
+            if (message != null) {
+                dumpMessage(message);
+                logger.error("Received error: {}", e.getMessage());
+                String deadLetterKey = getDLQStreamKey(entityClass);
+                Map<String, String> deadLetterMessage = new HashMap<>(message.getValue());
+                deadLetterMessage.put("error", e.getMessage());
+                deadLetterMessage.put("streamKey", message.getStream());
+                deadLetterMessage.put("streamID", message.getId().getValue());
+                deadLetterMessage.put("consumer", getConsumerName());
+                deadLetterMessage.put("group", getConsumerGroup());
 
-            redisTemplate.opsForStream().add(
-                    StreamRecords.newRecord()
-                            .in(deadLetterKey)
-                            .ofMap(deadLetterMessage)
-            );
-
-            acknowledgeMessage(message);
-
-            logger.info("Message {} moved to dead letter queue", message.getId());
+                redisTemplate.opsForStream().add(
+                        StreamRecords.newRecord()
+                                .withId(message.getId().getValue())
+                                .ofMap(deadLetterMessage)
+                                .withStreamKey(deadLetterKey)
+                );
+                logger.warn("Message {} moved to dead letter queue for manual processing.", message.getId());
+                acknowledgeMessage(message);
+            }
         } catch (Exception dlqError) {
-            logger.error("Error moving message to dead letter queue", dlqError);
+            logger.error("Error moving message to dead letter queue", dlqError.getMessage());
         }
     }
 }
