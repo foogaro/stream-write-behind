@@ -12,7 +12,6 @@ import org.springframework.data.redis.repository.configuration.EnableRedisReposi
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.GenericToStringSerializer;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer;
-import redis.clients.jedis.Jedis;
 
 import java.time.Duration;
 
