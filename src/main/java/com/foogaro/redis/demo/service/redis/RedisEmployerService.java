@@ -6,9 +6,8 @@ import com.foogaro.redis.core.service.EntityService;
 import com.foogaro.redis.demo.entity.Employer;
 import com.foogaro.redis.demo.repository.redis.RedisEmployerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.StreamEntryID;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -20,7 +19,7 @@ import static com.foogaro.redis.core.Misc.*;
 public class RedisEmployerService extends EntityService<Employer> {
 
     @Autowired
-    private Jedis jedis;
+    private RedisTemplate redisTemplate;
 
     @Autowired
     private RedisEmployerRepository repository;
@@ -44,7 +43,7 @@ public class RedisEmployerService extends EntityService<Employer> {
             String json = objectMapper.writeValueAsString(employer);
             Map<String, String> map = new HashMap<>();
             map.put(EVENT_CONTENT_KEY, json);
-            jedis.xadd(getStreamKey(), StreamEntryID.NEW_ENTRY, map);
+            redisTemplate.opsForStream().add(getStreamKey(), map);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
@@ -53,7 +52,7 @@ public class RedisEmployerService extends EntityService<Employer> {
     public void deleteEmployer(Long id) {
         Map<String, String> map = new HashMap<>();
         map.put(EVENT_CONTENT_KEY, id.toString());
-        map.put(EVENT_OPERATION_KEY, DELETE_OPERATION_KEY);
-        jedis.xadd(getStreamKey(), StreamEntryID.NEW_ENTRY, map);
+        map.put(EVENT_OPERATION_KEY, Operation.DELETE.getValue());
+        redisTemplate.opsForStream().add(getStreamKey(), map);
     }
 }
