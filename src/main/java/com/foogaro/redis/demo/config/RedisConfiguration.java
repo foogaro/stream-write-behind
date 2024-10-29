@@ -32,11 +32,6 @@ public class RedisConfiguration {
     }
 
     @Bean
-    public Jedis jedis() {
-        return new Jedis(redis_host, redis_port);
-    }
-
-    @Bean
     public RedisTemplate<String, Object> redisTemplate() {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(redisConnectionFactory());
