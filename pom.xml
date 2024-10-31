@@ -5,7 +5,7 @@
 
     <groupId>io.github.foogaro</groupId>
     <artifactId>write-behind-streaming-parent</artifactId>
-    <version>0.1.0</version>
+    <version>0.1.1</version>
 
     <name>write-behind-streaming-parent</name>
     <description>Java library to implement the Write-Behind caching pattern using Redis Streams.</description>

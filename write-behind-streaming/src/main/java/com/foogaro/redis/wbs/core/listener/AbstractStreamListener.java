@@ -26,15 +26,15 @@ import static com.foogaro.redis.wbs.core.Misc.*;
  * The AbstractStreamListener serves as a foundational abstract class for implementing Redis Stream listeners
  * in a robust and organized manner. It provides a comprehensive framework for consuming and processing messages from
  * Redis Streams, handling message acknowledgments, managing consumer groups, and implementing error recovery mechanisms.
- * 
+ *
  * The class includes functionality for processing both new messages and pending messages (messages that failed previous
  * processing attempts), implements a Dead Letter Queue (DLQ) mechanism for handling irretrievably failed messages, and
  * maintains retry counters for failed message processing attempts.
  *
  * It automatically schedules periodic checks for pending messages, ensuring no messages are lost or stuck in processing
  * limbo.
- * @param <T>
- * @param <R>
+ * @param <T> the Entity class
+ * @param <R> the Repository class
  */
 public abstract class AbstractStreamListener<T, R> implements StreamListener {
 
@@ -61,7 +61,7 @@ public abstract class AbstractStreamListener<T, R> implements StreamListener {
 
     /***
      * Returns the class of the entity defined by the implemented class.
-     * @return Class<T>
+     * @return Class<T> the entity class.
      */
     protected Class<T> getEntityClass() {
         return this.entityClass;
@@ -69,7 +69,7 @@ public abstract class AbstractStreamListener<T, R> implements StreamListener {
 
     /***
      * Returns the class of the repository defined by the implemented class.
-     * @return Class<T>
+     * @return Class<T> repository class.
      */
     public Class<R> getRepositoryClass() {
         return repositoryClass;
@@ -77,7 +77,7 @@ public abstract class AbstractStreamListener<T, R> implements StreamListener {
 
     /***
      * Returns the key of the Stream based of the entity class name.
-     * @return String
+     * @return String the generated key.
      */
     protected String getStreamKey() {
         return Misc.getStreamKey(entityClass);
@@ -85,7 +85,7 @@ public abstract class AbstractStreamListener<T, R> implements StreamListener {
 
     /***
      * Returns the name of the consumer group, based on the repository class name.
-     * @return String
+     * @return String the generated consumer group name.
      */
     protected String getConsumerGroup() {
         return getRepositoryClass().getSimpleName().toLowerCase() + CONSUMER_GROUP_SUFFIX;
@@ -147,8 +147,8 @@ public abstract class AbstractStreamListener<T, R> implements StreamListener {
     }
 
     /***
-     * This method is triggered when new messages arrive on the stream; it processes the message and sends an acknowledgment if successful.
-     * @param message
+     * This method is triggered when new messages are received from the stream; it processes the message and sends an acknowledgment if successful.
+     * @param message is the message received from the stream.
      */
     public void onMessage(MapRecord<String, String, String> message) {
         dumpMessage(message);
@@ -164,13 +164,13 @@ public abstract class AbstractStreamListener<T, R> implements StreamListener {
 
     /***
      * This method processes incoming messages by passing them to the repository's `saveEntity` method.
-     * @param message
-     * @throws ProcessMessageException
+     * @param message is the message read from the stream.
+     * @throws ProcessMessageException is the type of exception to throw in case of failure.
      */
     private void processMessage(MapRecord<String, String, String> message) throws ProcessMessageException {
         logger.debug("Processing message: {}", message.getId());
         String operation = message.getValue().get(EVENT_OPERATION_KEY);
-        if (Misc.Operation.DELETE.getValue().equalsIgnoreCase(operation)) {
+        if (Operation.DELETE.getValue().equalsIgnoreCase(operation)) {
             deleteEntity(message.getValue().get(EVENT_CONTENT_KEY));
         } else {
             try {
@@ -189,8 +189,8 @@ public abstract class AbstractStreamListener<T, R> implements StreamListener {
     /***
      * This method sends an acknowledgment for the message once processing is complete and successful, ensuring that the
      * message is marked as processed in the stream.
-     * @param message
-     * @throws AcknowledgeMessageException
+     * @param message is the message read from the stream.
+     * @throws AcknowledgeMessageException is the type of exception to throw in case of failure.
      */
     private void acknowledgeMessage(MapRecord<String, String, String> message) throws AcknowledgeMessageException {
         try {
@@ -294,9 +294,9 @@ public abstract class AbstractStreamListener<T, R> implements StreamListener {
 
     /***
      * This method handles failed pending messages by moving them to a Dead Letter Queue (DLQ) stream.
-     * @param message
-     * @param cause
-     * @param counterKey
+     * @param message is the message read from the stream.
+     * @param cause is the exception generated during processing or acknowledging the message.
+     * @param counterKey the key of the counter to expire.
      */
     private void handleMessageFailure(MapRecord<String, String, String> message,
                                       Exception cause,
@@ -307,8 +307,8 @@ public abstract class AbstractStreamListener<T, R> implements StreamListener {
 
     /***
      * This method expires the attempt count stored as a key for a specific message.
-     * @param counterKey
-     * @return
+     * @param counterKey to expire.
+     * @return `true` if the TTL was set, `false` otherwise.
      */
     private Boolean expireCounterKey(String counterKey) {
         return getRedisTemplate().expire(counterKey, Duration.ZERO);
@@ -317,8 +317,8 @@ public abstract class AbstractStreamListener<T, R> implements StreamListener {
     /***
      * This method increases the attempt count for a specific pending message, tracking the number of processing attempts
      * made for better error handling and retry management.
-     * @param counterKey
-     * @return
+     * @param counterKey to increment.
+     * @return the new incremented value.
      */
     private Long incrementCounterKey(String counterKey) {
         return getRedisTemplate().opsForValue().increment(counterKey);
@@ -326,8 +326,8 @@ public abstract class AbstractStreamListener<T, R> implements StreamListener {
 
     /***
      * This method retrieves the key for the counter that tracks the number of processing attempts for a pending message.
-     * @param id
-     * @return
+     * @param id is the ID of the original message read from the pending-entry-list of the stream.
+     * @return The counter key based on the stream name.
      */
     private String getCounterKey(String id) {
         return getStreamKey()+KEY_SEPARATOR+id;
@@ -335,8 +335,8 @@ public abstract class AbstractStreamListener<T, R> implements StreamListener {
 
     /***
      * This method converts a `MapRecord<String, Object, Object>` object into a `MapRecord<String, String, String>` object.
-     * @param record
-     * @return
+     * @param record is the message read from the pending-entry-list of the stream.
+     * @return a new `MapRecord<String, String, String>` object.
      */
     private MapRecord<String, String, String> convertMapRecord(MapRecord<String, Object, Object> record) {
         Map<String, String> convertedMap = new HashMap<>();
@@ -356,8 +356,8 @@ public abstract class AbstractStreamListener<T, R> implements StreamListener {
      * original stream key, message ID, consumer name, and consumer group. The method then attempts to add this enriched
      * message to a separate Dead Letter Queue stream, using the original message's ID to maintain traceability.
      * After successfully moving the message to the DLQ, it acknowledges the original message to prevent reprocessing.
-     * @param message
-     * @param e
+     * @param message is the original message read from the stream.
+     * @param e is the exception generated during processing or acknowledging the message.
      */
     private void handleDLQ(MapRecord<String, String, String> message, Exception e) {
         try {

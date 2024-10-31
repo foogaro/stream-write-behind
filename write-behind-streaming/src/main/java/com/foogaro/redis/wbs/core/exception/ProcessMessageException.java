@@ -1,5 +1,8 @@
 package com.foogaro.redis.wbs.core.exception;
 
+/***
+ * Checked exception for managing the processing of the message.
+ */
 public class ProcessMessageException extends Exception {
 
     public ProcessMessageException() {

@@ -1,5 +1,8 @@
 package com.foogaro.redis.wbs.core.exception;
 
+/***
+ * Checked exception for managing the acknowledgement of the message.
+ */
 public class AcknowledgeMessageException extends Exception {
 
     public AcknowledgeMessageException() {
