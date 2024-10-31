@@ -40,9 +40,9 @@ services:
         ipv4_address: 172.32.0.3
   app:
     build:
-      context: .
+      context: ./demo/jpa-employer
       dockerfile: Dockerfile
-    image: foogaro/stream-write-behind-app:1.0.0
+    image: foogaro/jpa-employer:1.0.0
     container_name: app
     hostname: app
     restart: unless-stopped

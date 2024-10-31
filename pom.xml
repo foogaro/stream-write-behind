@@ -3,25 +3,16 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.foogaro.redis</groupId>
-    <artifactId>stream-write-behind</artifactId>
-    <version>1.0.0</version>
+    <groupId>io.github.foogaro</groupId>
+    <artifactId>write-behind-streaming-parent</artifactId>
+    <version>0.1.0</version>
 
-    <name>stream-write-behind</name>
+    <name>write-behind-streaming-parent</name>
+    <description>Java library to implement the Write-Behind caching pattern using Redis Streams.</description>
 
-    <description>Demo project to implement a write behind use case using Redis Stream.</description>
-
-    <packaging>jar</packaging>
-
-    <parent>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.3.4</version>
-        <relativePath/>
-    </parent>
+    <packaging>pom</packaging>
 
     <properties>
-        <java.version>21</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>21</maven.compiler.release>
         <maven.compiler.source>21</maven.compiler.source>
@@ -29,108 +20,14 @@
         <maven.test.source>21</maven.test.source>
         <maven.test.target>21</maven.test.target>
         <maven.deploy.skip>true</maven.deploy.skip>
-        <mysql.version>8.0.30</mysql.version>
-        <lombok.version>1.18.34</lombok.version>
-        <redis-om.version>0.9.6-SNAPSHOT</redis-om.version>
-        <jedis.version>5.1.0</jedis.version>
-        <jackson-databind.version>2.17.2</jackson-databind.version>
-        <gson.version>2.10.1</gson.version>
+        <java.version>21</java.version>
     </properties>
 
-    <dependencies>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-jpa</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-redis</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.data</groupId>
-            <artifactId>spring-data-redis</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>mysql</groupId>
-            <artifactId>mysql-connector-java</artifactId>
-            <version>${mysql.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <version>${lombok.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.redis.om</groupId>
-            <artifactId>redis-om-spring</artifactId>
-            <version>${redis-om.version}</version>
-        </dependency>
-<!--        <dependency>-->
-<!--            <groupId>redis.clients</groupId>-->
-<!--            <artifactId>jedis</artifactId>-->
-<!--            <version>${jedis.version}</version>-->
-<!--        </dependency>-->
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-            <version>${jackson-databind.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
-            <version>${gson.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-redis-reactive</artifactId>
-        </dependency>
-
-    </dependencies>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-                <configuration>
-                    <image>
-                        <name>${project.artifactId}</name>
-                    </image>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>${maven-compiler-plugin.version}</version>
-                <configuration>
-                    <annotationProcessorPaths>
-                        <path>
-                            <groupId>org.springframework.boot</groupId>
-                            <artifactId>spring-boot-configuration-processor</artifactId>
-                        </path>
-                        <path>
-                            <groupId>org.projectlombok</groupId>
-                            <artifactId>lombok</artifactId>
-                            <version>${lombok.version}</version>
-                        </path>
-                        <path>
-                            <groupId>com.redis.om</groupId>
-                            <artifactId>redis-om-spring</artifactId>
-                            <version>${redis-om.version}</version>
-                        </path>
-                    </annotationProcessorPaths>
-                </configuration>
-            </plugin>
-
-        </plugins>
-    </build>
+    <modules>
+        <!-- Main Project -->
+        <module>write-behind-streaming</module>
+        <!-- Demo -->
+        <module>demo/jpa-employer</module>
+    </modules>
 
 </project>
