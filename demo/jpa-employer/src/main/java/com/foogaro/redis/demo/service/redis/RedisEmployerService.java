@@ -21,7 +21,7 @@ import static com.foogaro.redis.wbs.core.Misc.EVENT_OPERATION_KEY;
 public class RedisEmployerService extends EntityService<Employer> {
 
     @Autowired
-    private RedisTemplate redisTemplate;
+    private RedisTemplate<String, String> redisTemplate;
 
     @Autowired
     private RedisEmployerRepository repository;

@@ -344,8 +344,10 @@ public abstract class AbstractStreamListener<T, R> implements StreamListener {
             convertedMap.put(String.valueOf(k),String.valueOf(v));
         });
 
-        StreamRecords.RecordBuilder rb = StreamRecords.newRecord();
-        return rb.withId(record.getId()).ofMap(convertedMap).withStreamKey(record.getStream());
+        return StreamRecords.newRecord()
+                .withId(record.getId())
+                .ofMap(convertedMap)
+                .withStreamKey(record.getStream());
     }
 
     /***
