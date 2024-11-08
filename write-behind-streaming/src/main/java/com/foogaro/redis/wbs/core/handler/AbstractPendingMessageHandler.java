@@ -14,9 +14,11 @@ import org.springframework.scheduling.annotation.Scheduled;
 
 import java.lang.reflect.ParameterizedType;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static com.foogaro.redis.wbs.core.Misc.*;
@@ -106,10 +108,11 @@ public abstract class AbstractPendingMessageHandler<T, R> implements MessageHand
                                     redisTemplate.opsForStream().range(streamKey,
                                             Range.closed(messageId, messageId));
                         List<MapRecord<String, String, String>> messages =
-                                rawMessages
-                                .stream()
-                                .map(this::convertMapRecord)
-                                .collect(Collectors.toList());
+                                (rawMessages != null) ? rawMessages
+                                    .stream()
+                                    .map(this::convertMapRecord)
+                                    .collect(Collectors.toList())
+                                : Collections.emptyList();
 
                         if (!messages.isEmpty()) {
                             message = messages.get(0);
@@ -154,6 +157,7 @@ public abstract class AbstractPendingMessageHandler<T, R> implements MessageHand
     }
 
     private MapRecord<String, String, String> convertMapRecord(MapRecord<String, Object, Object> record) {
+        Objects.requireNonNull(record, "Record cannot be null");
         Map<String, String> convertedMap = new HashMap<>();
         record.getValue().forEach((k, v) -> {
             convertedMap.put(String.valueOf(k),String.valueOf(v));

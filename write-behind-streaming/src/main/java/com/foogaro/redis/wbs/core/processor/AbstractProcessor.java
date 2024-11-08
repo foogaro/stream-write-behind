@@ -43,12 +43,14 @@ public abstract class AbstractProcessor<T, R> implements Processor<T, R> {
     private Class<T> entityClass;
     private Class<R> repositoryClass;
 
+    @SuppressWarnings("unchecked")
     protected AbstractProcessor() {
         this.record = null;
         this.entityClass = (Class<T>) ((ParameterizedType) getClass().getGenericSuperclass()).getActualTypeArguments()[0];
         this.repositoryClass = (Class<R>) ((ParameterizedType) getClass().getGenericSuperclass()).getActualTypeArguments()[1];
     }
 
+    @SuppressWarnings("unchecked")
     public AbstractProcessor(MapRecord<String, String, String> record) {
         this.record = record;
         this.priority = Integer.MAX_VALUE;
@@ -56,6 +58,7 @@ public abstract class AbstractProcessor<T, R> implements Processor<T, R> {
         this.repositoryClass = (Class<R>) ((ParameterizedType) getClass().getGenericSuperclass()).getActualTypeArguments()[1];
     }
 
+    @SuppressWarnings("unchecked")
     public AbstractProcessor(MapRecord<String, String, String> record, int priority) {
         this.record = record;
         this.priority = priority;

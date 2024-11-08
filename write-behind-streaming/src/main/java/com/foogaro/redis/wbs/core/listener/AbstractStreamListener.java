@@ -22,6 +22,7 @@ public abstract class AbstractStreamListener<T, R> implements StreamListener<T, 
     public abstract ProcessOrchestrator<T, R> getProcessOrchestrator();
     public abstract Processor<T, R> getProcessor();
 
+    @SuppressWarnings("unchecked")
     protected AbstractStreamListener() {
         this.entityClass = (Class<T>) ((ParameterizedType) getClass().getGenericSuperclass()).getActualTypeArguments()[0];
         this.repositoryClass = (Class<R>) ((ParameterizedType) getClass().getGenericSuperclass()).getActualTypeArguments()[1];

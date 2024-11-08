@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.foogaro.redis.wbs.core.exception.AcknowledgeMessageException;
 import com.foogaro.redis.wbs.core.exception.ProcessMessageException;
-import com.foogaro.redis.wbs.core.service.RepositoryFinder;
+import com.foogaro.redis.wbs.core.service.BeanFinder;
 import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.repository.Repository;
@@ -13,7 +13,7 @@ import java.util.List;
 
 public interface Processor<T, R> {
 
-    RepositoryFinder getRepositoryFinder();
+    BeanFinder getRepositoryFinder();
     RedisTemplate<String, String> getRedisTemplate();
     ObjectMapper getObjectMapper();
     T convertToEntity(String content) throws JsonProcessingException;

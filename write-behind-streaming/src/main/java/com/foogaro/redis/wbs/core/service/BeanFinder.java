@@ -1,5 +1,6 @@
 package com.foogaro.redis.wbs.core.service;
 
+import com.foogaro.redis.wbs.core.annotation.WriteBehind;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ListableBeanFactory;
@@ -15,63 +16,31 @@ import java.util.stream.Collectors;
 
 
 @Component
-public class RepositoryFinder {
+public class BeanFinder {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private ListableBeanFactory beanFactory;
+    private ListableBeanFactory listableBeanFactory;
 
-    public RepositoryFinder(ListableBeanFactory beanFactory) {
-        this.beanFactory = beanFactory;
+    public BeanFinder(ListableBeanFactory listableBeanFactory) {
+        this.listableBeanFactory = listableBeanFactory;
     }
 
-    /****************************************/
-
-    public <T> List<Repository<T, ?>> findRepositoriesForEntity(Class<T> entityClass, Class repositoryClass) {
-        Map<String, Object> repositoryBeans = beanFactory.getBeansOfType(repositoryClass);
+    @SuppressWarnings("unchecked")
+    public <T> List<Repository<T, ?>> findRepositoriesForEntity(Class<T> entityClass, Class<?> repositoryClass) {
+        Map<String, ? extends Object> repositoryBeans = listableBeanFactory.getBeansOfType(repositoryClass);
 
         return repositoryBeans.values()
                 .stream()
+                .filter(bean -> bean instanceof Repository)
                 .map(bean -> (Repository<T, ?>) bean)
                 .collect(Collectors.toList());
     }
 
-//    private <T> boolean isRepositoryForEntity(Object bean, Class<T> entityClass) {
-//        Class<?> targetClass = AopUtils.getTargetClass(bean);
-//
-//        // Cerca nelle interfacce
-//        boolean foundInInterfaces = Arrays.stream(targetClass.getGenericInterfaces())
-//                .filter(type -> type instanceof ParameterizedType)
-//                .map(type -> (ParameterizedType) type)
-//                .filter(type -> Repository.class.isAssignableFrom((Class<?>) type.getRawType()))
-//                .anyMatch(type -> matchesEntityType(type, entityClass));
-//
-//        if (foundInInterfaces) {
-//            return true;
-//        }
-//
-//        // Cerca nelle superclassi se necessario
-//        Type superclass = targetClass.getGenericSuperclass();
-//        if (superclass instanceof ParameterizedType) {
-//            return matchesEntityType((ParameterizedType) superclass, entityClass);
-//        }
-//
-//        return false;
-//    }
-
-//    private <T> boolean matchesEntityType(ParameterizedType type, Class<T> entityClass) {
-//        Type[] typeArguments = type.getActualTypeArguments();
-//        if (typeArguments.length > 0) {
-//            Type firstArg = typeArguments[0];
-//            if (firstArg instanceof Class) {
-//                return firstArg.equals(entityClass);
-//            }
-//        }
-//        return false;
-//    }
-//
-
-    /****************************************/
+    public Map<String, Object> findEntities() {
+        Map<String, Object> writeBehindBeans = listableBeanFactory.getBeansWithAnnotation(WriteBehind.class);
+        return writeBehindBeans;
+    }
 
     public <T> Class<?> getIdType(Repository<T, ?> repository) {
         return Arrays.stream(repository.getClass().getInterfaces())
@@ -107,15 +76,6 @@ public class RepositoryFinder {
         }
     }
 
-//    public <T, ID> void executeWithId(Repository<T, ?> repository, String idValue,
-//                                      BiConsumer<CrudRepository<T, ID>, ID> operation) {
-//        Class<?> idType = getIdType(repository);
-//        ID id = (ID) createId(idType, idValue);
-//
-//        CrudRepository<T, ID> crudRepo = asCrudRepository(repository);
-//        operation.accept(crudRepo, id);
-//    }
-
     public <T, P> void executeOperation(Repository<T, ?> repository, P param,
                                         BiConsumer<CrudRepository<T, ?>, P> operation) {
         CrudRepository<T, ?> crudRepo = asCrudRepository(repository);
@@ -125,6 +85,7 @@ public class RepositoryFinder {
     public <T, ID> void executeIdOperation(Repository<T, ?> repository, String idValue,
                                            BiConsumer<CrudRepository<T, ID>, ID> operation) {
         Class<?> idType = getIdType(repository);
+        @SuppressWarnings("unchecked")
         ID id = (ID) createId(idType, idValue);
 
         CrudRepository<T, ID> crudRepo = asCrudRepository(repository);
