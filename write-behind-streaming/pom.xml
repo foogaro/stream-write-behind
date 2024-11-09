@@ -5,7 +5,7 @@
 
     <groupId>io.github.foogaro</groupId>
     <artifactId>write-behind-streaming</artifactId>
-    <version>0.1.1</version>
+    <version>0.2.0</version>
     <name>write-behind-streaming</name>
     <packaging>jar</packaging>
 
