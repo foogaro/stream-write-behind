@@ -1,5 +1,6 @@
 package com.foogaro.redis.demo.entity;
 
+import com.foogaro.redis.wbs.core.annotation.WriteBehind;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -9,6 +10,7 @@ import org.springframework.data.redis.core.RedisHash;
 @RedisHash("employer")
 @Entity
 @Table(name = "employers")
+@WriteBehind
 public class Employer {
 
     @Id

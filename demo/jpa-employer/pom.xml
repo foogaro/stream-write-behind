@@ -13,16 +13,16 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <java.version>21</java.version>
         <maven.compiler.release>21</maven.compiler.release>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <maven.test.source>21</maven.test.source>
         <maven.test.target>21</maven.test.target>
         <maven.deploy.skip>true</maven.deploy.skip>
-        <java.version>21</java.version>
         <mysql.version>8.0.30</mysql.version>
         <lombok.version>1.18.34</lombok.version>
-        <redis-om.version>0.9.6-SNAPSHOT</redis-om.version>
+        <redis-om.version>0.9.6</redis-om.version>
         <jedis.version>5.1.0</jedis.version>
         <jackson-databind.version>2.17.2</jackson-databind.version>
         <gson.version>2.10.1</gson.version>
@@ -106,6 +106,29 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${maven-compiler-plugin.version}</version>
+                <configuration>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>io.github.foogaro</groupId>
+                            <artifactId>write-behind-streaming</artifactId>
+                            <version>${write-behind-streaming.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+<!--                    <annotationProcessorPaths>-->
+<!--                        <annotationProcessor>com.foogaro.redis.wbs.core.annotation.WriteBehindAnnotationProcessor</annotationProcessor>-->
+<!--                    </annotationProcessorPaths>-->
+                    <showWarnings>true</showWarnings>
+                    <compilerArgs>
+                        <arg>-Xlint:processing</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
