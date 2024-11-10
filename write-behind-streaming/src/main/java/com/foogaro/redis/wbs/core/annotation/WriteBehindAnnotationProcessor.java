@@ -51,9 +51,7 @@ public class WriteBehindAnnotationProcessor extends AbstractProcessor {
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
         processingEnv.getMessager().printMessage(
                 Diagnostic.Kind.NOTE,
-                "******************************************\n" +
-                        "WriteBehindAnnotationProcessor PROCESSING\n" +
-                        "******************************************"
+                        "Write Behind ⚞☲⚟\n"
         );
 
         Set<? extends Element> elements = roundEnv.getElementsAnnotatedWith(WriteBehind.class);
