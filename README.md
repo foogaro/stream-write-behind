@@ -119,6 +119,21 @@ Additionally, if a message has been pending beyond a specified time threshold (a
 
 When either the maximum attempts are reached or the timeout occurs, the message is moved to a Dead Letter Queue (DLQ) stream. This DLQ serves as a holding area for messages requiring further attention, allowing for debugging and potential reprocessing. By using the DLQ, the library ensures that no data is lost, providing a safety net for handling unprocessed messages in a controlled and recoverable manner.
 
+## Why Choose This Library
+
+Redis offers several mechanisms for notifying data changes, as detailed in its [documentation](https://redis.io/docs/latest/develop/use/keyspace-notifications/):
+
+> Keyspace notifications allow clients to subscribe to Pub/Sub channels in order to receive events affecting the Redis data set in some way.
+> 
+> ...
+> 
+> Redis Pub/Sub is fire and forget; that is, if your Pub/Sub client disconnects, and reconnects later, all the events delivered during the time the client was disconnected are lost.
+
+Another option is the Redis Gears module, which enables users to inject custom code (C, JVM, Python and JavaScript) triggered by specific conditions.
+However, it still relies on keyspace notifications, inheriting Redis Pub/Sub fire and forget approach.
+
+For a more reliable and persistent solution, Redis Streams provide an ideal match. Redis Streams support event persistence, ensuring messages are not lost during temporary disconnects. They are also replayable, allowing consumers to reprocess events if necessary. By leveraging Redis Streams, this library ensures dependable, consistent data updates across systems, offering a robust alternative to traditional Pub/Sub notifications for applications that require durability and consistency in caching and data synchronization.
+
 # Disclaimer
 
 The Write-Behind-Streaming library is designed to facilitate efficient data caching and synchronization using the write-behind pattern. However, it is essential to carefully evaluate the suitability of this caching approach for your specific use case, especially in systems with stringent consistency requirements.
