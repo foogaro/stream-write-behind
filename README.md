@@ -80,6 +80,30 @@ public class Employer {
 
 Once entities are annotated with `@WriteBehind`, the library automatically identifies them and generates the necessary logic to manage write-behind caching. This means that whenever data is updated in the cache, the library takes care of asynchronously propagating these changes to the underlying database, maintaining data consistency across both layers.
 
+Writing to the Redis Stream is the initial step that triggers the entire write-behind caching process. When you want to update an entity across all systems, it must be sent as a message or event into the stream. This message will then be picked up to initiate the full synchronization flow.
+
+To do this, implement a method similar to the following:
+
+```java
+public void saveEmployer(Employer employer) {
+    try {
+        String json = objectMapper.writeValueAsString(employer);
+        Map<String, String> map = new HashMap<>();
+        map.put(EVENT_CONTENT_KEY, json);
+        MapRecord<String, String, String> record = StreamRecords.newRecord()
+                .withId(RecordId.autoGenerate())
+                .ofMap(map)
+                .withStreamKey(getStreamKey());
+        RecordId recordId = redisTemplate.opsForStream().add(record);
+        logger.debug("RecordId {} added for ingestion to the Stream {}", recordId.getValue(), getStreamKey());
+    } catch (JsonProcessingException e) {
+        throw new RuntimeException(e);
+    }
+}
+```
+
+This method adds the entity payload, formatted as JSON, to a specified stream. You can see this implementation in action in the [demo application](https://github.com/foogaro/write-behind-streaming/blob/main/demo/jpa-employer/src/main/java/com/foogaro/redis/demo/service/redis/RedisEmployerService.java#L50) within this repository. When the Controller receives an HTTP POST request, it forwards the request and its payload to the Service, specifically to the saveEmployer method, which handles the process of writing to the Redis Stream.
+
 With this setup, you gain the advantages of faster write operations directly to the cache, while the library seamlessly handles the synchronization of data to the database in the background. This approach ensures efficient, high-speed data access and consistency with minimal configuration, allowing developers to focus on application logic without worrying about complex caching management.
 
 ## Handling Errors and Ensuring Reliability
