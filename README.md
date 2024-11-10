@@ -104,13 +104,18 @@ public void saveEmployer(Employer employer) {
 }
 ```
 
-This method adds the entity payload, formatted as JSON, to a specified stream. You can see this implementation in action in the [demo application](https://github.com/foogaro/write-behind-streaming/blob/main/demo/jpa-employer/src/main/java/com/foogaro/redis/demo/service/redis/RedisEmployerService.java#L50) within this repository. When the Controller receives an HTTP POST request, it forwards the request and its payload to the Service, specifically to the saveEmployer method, which handles the process of writing to the Redis Stream.
+This method adds the entity payload, formatted as JSON, to a specified stream. You can see this implementation in action in the [demo application](https://github.com/foogaro/write-behind-streaming/blob/main/demo/jpa-employer/src/main/java/com/foogaro/redis/demo/service/redis/RedisEmployerService.java#L50) within this repository. When the Controller receives an HTTP POST request, it forwards the request and its payload to the Service, specifically to the saveEmployer method, which handles the process of writing to the Redis Stream, as depicted below:
+
+<p align="center"><img src="images/redis-stream.png" alt="Redis Insight Redis Stream" width="600"/></p>
 
 With this setup, you gain the advantages of faster write operations directly to the cache, while the library seamlessly handles the synchronization of data to the database in the background. This approach ensures efficient, high-speed data access and consistency with minimal configuration, allowing developers to focus on application logic without worrying about complex caching management.
 
 ## Handling Errors and Ensuring Reliability
 
-Redis Streams includes a Pending Entry List, which keeps track of all messages that have been processed but not yet acknowledged by consumers. The library periodically checks this list for any pending messages and reattempts to process them until they are either successfully acknowledged or reach the maximum number of allowed processing attempts. Additionally, if a message has been pending beyond a specified time threshold (acting as a timeout), it is flagged for special handling.
+Redis Streams includes a Pending Entry List, which keeps track of all messages that have been processed but not yet acknowledged by consumers. 
+The library periodically checks this list for any pending messages and reattempts to process them until they are either successfully acknowledged or reach the maximum number of allowed processing attempts. 
+
+Additionally, if a message has been pending beyond a specified time threshold (acting as a timeout), it is flagged for special handling.
 
 When either the maximum attempts are reached or the timeout occurs, the message is moved to a Dead Letter Queue (DLQ) stream. This DLQ serves as a holding area for messages requiring further attention, allowing for debugging and potential reprocessing. By using the DLQ, the library ensures that no data is lost, providing a safety net for handling unprocessed messages in a controlled and recoverable manner.
 
