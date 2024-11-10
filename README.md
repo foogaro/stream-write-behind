@@ -1,3 +1,5 @@
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.foogaro/write-behind-streaming.svg)](https://search.maven.org/artifact/io.github.foogaro/write-behind-streaming)
+
 # Write-Behind-Streaming
 
 The **Write Behind Streaming** library offers a powerful and efficient implementation of the write-behind caching pattern, specifically designed to support high-performance applications that require rapid data access and consistency across cache and database layers. By handling cache updates and synchronizing them with the underlying database in the background, this library ensures that data remains current and consistent without compromising application speed or responsiveness. This streamlined approach simplifies data management, making it ideal for applications with demanding performance and scalability requirements.
