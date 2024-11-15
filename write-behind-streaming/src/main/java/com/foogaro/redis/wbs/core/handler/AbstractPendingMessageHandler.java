@@ -14,11 +14,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 
 import java.lang.reflect.ParameterizedType;
 import java.time.Duration;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.foogaro.redis.wbs.core.Misc.*;
@@ -38,12 +34,6 @@ public abstract class AbstractPendingMessageHandler<T, R> implements MessageHand
 
     @Autowired
     private RedisTemplate<String, String> redisTemplate;
-//    @Autowired
-//    private RepositoryFinder repositoryFinder;
-//    @Autowired
-//    private ObjectMapper objectMapper;
-//    @Autowired
-//    private Processor<T, R> processor;
 
     private final Class<T> entityClass;
     private final Class<R> repositoryClass;
@@ -57,17 +47,9 @@ public abstract class AbstractPendingMessageHandler<T, R> implements MessageHand
         this.repositoryClass = (Class<R>) ((ParameterizedType) getClass().getGenericSuperclass()).getActualTypeArguments()[1];
     }
 
-//    public RepositoryFinder getRepositoryFinder() {
-//        return repositoryFinder;
-//    }
-
     public RedisTemplate<String, String> getRedisTemplate() {
         return redisTemplate;
     }
-
-//    public ObjectMapper getObjectMapper() {
-//        return objectMapper;
-//    }
 
     public Class<T> getEntityClass() {
         return this.entityClass;
@@ -134,7 +116,7 @@ public abstract class AbstractPendingMessageHandler<T, R> implements MessageHand
                                 expireCounterKey(getCounterKey(message.getId().getValue()));
                                 logger.info("Successfully processed pending message: {}", messageId);
                             } catch (ProcessMessageException e) {
-                                logger.error("Error processing pending message: {}", messageId, e.getMessage());
+                                logger.error("Error processing pending message: {} - {}", messageId, e.getMessage());
                                 if (counter > MAX_ATTEMPTS) {
                                     handleMessageFailure(message, new RuntimeException(e), getCounterKey(message.getId().getValue()));
                                     throw new RuntimeException(e);
@@ -211,7 +193,6 @@ public abstract class AbstractPendingMessageHandler<T, R> implements MessageHand
                 );
                 logger.warn("Message {} moved to dead letter queue for manual processing.", message.getId());
                 redisTemplate.opsForStream().acknowledge(getConsumerGroup(repositoryClass), message);
-//                getProcessor().acknowledge(message);
                 logger.warn("And Message {} acknowledge.", message.getId());
             }
         } catch (Exception dlqError) {
