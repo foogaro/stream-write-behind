@@ -28,7 +28,7 @@ public class EmployerController {
 
     @PostMapping
     public void saveEmployer(@RequestBody Employer employer) {
-        redisEmployerService.saveEmployer(employer);
+        redisEmployerService.save(employer);
     }
 
     @PutMapping("/{id}")
@@ -42,7 +42,7 @@ public class EmployerController {
             existingEmployer.setEmail(updatedEmployer.getEmail());
             existingEmployer.setPhone(updatedEmployer.getPhone());
 
-            redisEmployerService.saveEmployer(existingEmployer);
+            redisEmployerService.save(existingEmployer);
             return ResponseEntity.ok().build();
         } else {
             return ResponseEntity.notFound().build();
@@ -51,7 +51,7 @@ public class EmployerController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteEmployer(@PathVariable Long id) {
-        redisEmployerService.deleteEmployer(id);
+        redisEmployerService.delete(id);
         return ResponseEntity.noContent().build();
     }
 }
