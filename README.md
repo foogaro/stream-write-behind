@@ -38,11 +38,12 @@ To get started, add the Maven dependency to your project by including the follow
 <dependency>
     <groupId>io.github.foogaro</groupId>
     <artifactId>write-behind-streaming</artifactId>
-    <version>0.2.0</version>
+    <version>${wbs.version}</version>
 </dependency>
 ```
 
-To enable the write-behind caching pattern in your application, simply apply the `@WriteBehind` annotation to the entities you wish to include. This annotation signals the library to handle these entities using the write-behind approach, allowing you to leverage the benefits of caching without additional configuration. Here’s an example of how to annotate your entities:
+To enable the write-behind caching pattern in your application, simply apply the `@WriteBehind` annotation to the entities you wish to include.
+When this annotation is applied, the library manages the entities using the write-behind approach, allowing you to leverage the benefits of caching without additional configuration. Here’s an example of how to annotate your entities:
 
 ```java
 @Entity
@@ -82,31 +83,35 @@ public class Employer {
 
 Once entities are annotated with `@WriteBehind`, the library automatically identifies them and generates the necessary logic to manage write-behind caching. This means that whenever data is updated in the cache, the library takes care of asynchronously propagating these changes to the underlying database, maintaining data consistency across both layers.
 
-Writing to the Redis Stream is the initial step that triggers the entire write-behind caching process. When you want to update an entity across all systems, it must be sent as a message or event into the stream. This message will then be picked up to initiate the full synchronization flow.
-
-To do this, implement a method similar to the following:
+Writing to the Redis Stream is the initial step that triggers the entire write-behind caching process. When you want to update an entity across all systems, it must be sent as a message or event into the stream. 
+The `com.foogaro.redis.wbs.core.service.WBSService` provides all the necessary logic to persist the entities, formatted as JSON, into their designated Redis Streams.
+Applications only need to create their own service by extending `WBSService`, as shown in the example below:
 
 ```java
-public void saveEmployer(Employer employer) {
-    try {
-        String json = objectMapper.writeValueAsString(employer);
-        Map<String, String> map = new HashMap<>();
-        map.put(EVENT_CONTENT_KEY, json);
-        MapRecord<String, String, String> record = StreamRecords.newRecord()
-                .withId(RecordId.autoGenerate())
-                .ofMap(map)
-                .withStreamKey(getStreamKey());
-        RecordId recordId = redisTemplate.opsForStream().add(record);
-        logger.debug("RecordId {} added for ingestion to the Stream {}", recordId.getValue(), getStreamKey());
-    } catch (JsonProcessingException e) {
-        throw new RuntimeException(e);
+@Service
+public class RedisEmployerService extends WBSService<Employer> {
+
+    @Autowired
+    private RedisEmployerRepository repository;
+
+    public Iterable<Employer> findAll() {
+        return repository.findAll();
     }
+
+    public Optional<Employer> findById(Long id) {
+        return repository.findById(id);
+    }
+
+    // Additional methods
+
 }
 ```
 
-This method adds the entity payload, formatted as JSON, to a specified stream. You can see this implementation in action in the [demo application](https://github.com/foogaro/write-behind-streaming/blob/main/demo/jpa-employer/src/main/java/com/foogaro/redis/demo/service/redis/RedisEmployerService.java#L50) within this repository. When the Controller receives an HTTP POST request, it forwards the request and its payload to the Service, specifically to the saveEmployer method, which handles the process of writing to the Redis Stream, as depicted below:
+You can see this implementation in action in the [demo application](https://github.com/foogaro/write-behind-streaming/blob/main/demo/jpa-employer/src/main/java/com/foogaro/redis/demo/service/redis/RedisEmployerService.java#L50) within this repository. When the Controller receives an HTTP POST request, it forwards the request and its payload to the Service which handles the process of writing to the Redis Stream, as depicted below:
 
 <p align="center"><img src="images/redis-stream.png" alt="Redis Insight Redis Stream" width="600"/></p>
+
+This message will then be picked up to initiate the full synchronization flow.
 
 With this setup, you gain the advantages of faster write operations directly to the cache, while the library seamlessly handles the synchronization of data to the database in the background. This approach ensures efficient, high-speed data access and consistency with minimal configuration, allowing developers to focus on application logic without worrying about complex caching management.
 
@@ -132,7 +137,7 @@ Redis offers several mechanisms for notifying data changes, as detailed in its [
 Another option is the Redis Gears module, which enables users to inject custom code (C, JVM, Python and JavaScript) triggered by specific conditions.
 However, it still relies on keyspace notifications, inheriting Redis Pub/Sub fire and forget approach.
 
-For a more reliable and persistent solution, Redis Streams provide an ideal match. Redis Streams support event persistence, ensuring messages are not lost during temporary disconnects. They are also replayable, allowing consumers to reprocess events if necessary. By leveraging Redis Streams, this library ensures dependable, consistent data updates across systems, offering a robust alternative to traditional Pub/Sub notifications for applications that require durability and consistency in caching and data synchronization.
+For a more reliable and persistent solution, Redis Streams provide an ideal match. Redis Streams support event persistence, ensuring messages are not lost during temporary disconnects. They are also replayable, allowing consumers to reprocess events if necessary. By leveraging Redis Streams, this library ensures reliable, consistent data updates across systems, offering a robust alternative to traditional Pub/Sub notifications for applications that require durability and consistency in caching and data synchronization.
 
 # Disclaimer
 
