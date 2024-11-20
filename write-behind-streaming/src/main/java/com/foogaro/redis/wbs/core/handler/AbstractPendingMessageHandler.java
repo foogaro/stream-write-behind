@@ -100,16 +100,6 @@ public abstract class AbstractPendingMessageHandler<T, R> implements MessageHand
                             message = messages.get(0);
                             Long counter = incrementCounterKey(getCounterKey(message.getId().getValue()));
                             logger.debug("Attempts: {} - Elapsed time: {}", counter, elapsedTime);
-                            if (counter > MAX_ATTEMPTS) {
-                                ProcessMessageException e = new ProcessMessageException("Too many attempts");
-                                handleMessageFailure(message, e, getCounterKey(message.getId().getValue()));
-                                throw new RuntimeException(e);
-                            }
-                            if (elapsedTime > MAX_RETENTION) {
-                                ProcessMessageException e = new ProcessMessageException("Long lasting message");
-                                handleMessageFailure(message, e, getCounterKey(message.getId().getValue()));
-                                throw new RuntimeException(e);
-                            }
                             try {
                                 getProcessor().process(message);
                                 getProcessor().acknowledge(message);
@@ -117,13 +107,13 @@ public abstract class AbstractPendingMessageHandler<T, R> implements MessageHand
                                 logger.info("Successfully processed pending message: {}", messageId);
                             } catch (ProcessMessageException e) {
                                 logger.error("Error processing pending message: {} - {}", messageId, e.getMessage());
-                                if (counter > MAX_ATTEMPTS) {
-                                    handleMessageFailure(message, new RuntimeException(e), getCounterKey(message.getId().getValue()));
+                                if (counter >= MAX_ATTEMPTS) {
+                                    handleMessageFailure(message, "Too many attempts", new RuntimeException(e), getCounterKey(message.getId().getValue()));
                                     throw new RuntimeException(e);
                                 }
                             } catch (AcknowledgeMessageException e) {
-                                if (counter > MAX_ATTEMPTS) {
-                                    handleMessageFailure(message, new RuntimeException(e), getCounterKey(message.getId().getValue()));
+                                if (counter >= MAX_ATTEMPTS) {
+                                    handleMessageFailure(message, "Long lasting message", new RuntimeException(e), getCounterKey(message.getId().getValue()));
                                     throw new RuntimeException(e);
                                 }
                             }
@@ -152,19 +142,23 @@ public abstract class AbstractPendingMessageHandler<T, R> implements MessageHand
     }
 
     private void handleMessageFailure(MapRecord<String, String, String> message,
-                                      Exception cause,
+                                      String dlqReason, Exception cause,
                                       String counterKey) {
-        handleDLQ(message, cause);
+        handleDLQ(message, dlqReason, cause);
         expireCounterKey(counterKey);
     }
 
-    private Boolean expireCounterKey(String counterKey) {
-        return redisTemplate.expire(counterKey, Duration.ZERO);
+    private void expireCounterKey(String counterKey) {
+        Objects.requireNonNull(counterKey, "Counter key cannot be null");
+        redisTemplate.expire(counterKey, Duration.ZERO);
     }
 
     private Long incrementCounterKey(String counterKey) {
-        long incr = redisTemplate.opsForValue().increment(counterKey);
-        redisTemplate.expire(counterKey, Duration.ofMillis(MAX_RETENTION));
+        Objects.requireNonNull(counterKey, "Counter key cannot be null");
+        Long incr =redisTemplate.opsForValue().increment(counterKey);
+        if (incr != null) {
+            redisTemplate.expire(counterKey, Duration.ofMillis(MAX_RETENTION));
+        } else return 0L;
         return incr;
     }
 
@@ -172,13 +166,14 @@ public abstract class AbstractPendingMessageHandler<T, R> implements MessageHand
         return getStreamKey(entityClass) + KEY_SEPARATOR + id;
     }
 
-    private void handleDLQ(MapRecord<String, String, String> message, Exception e) {
+    private void handleDLQ(MapRecord<String, String, String> message, String dlqReason, Exception e) {
         try {
             if (message != null) {
                 dumpMessage(message);
                 logger.error("Received error: {}", e.getMessage());
                 String deadLetterKey = getDLQStreamKey(entityClass);
                 Map<String, String> deadLetterMessage = new HashMap<>(message.getValue());
+                deadLetterMessage.put("reason", dlqReason);
                 deadLetterMessage.put("error", e.getMessage());
                 deadLetterMessage.put("streamKey", message.getStream());
                 deadLetterMessage.put("streamID", message.getId().getValue());
@@ -193,10 +188,10 @@ public abstract class AbstractPendingMessageHandler<T, R> implements MessageHand
                 );
                 logger.warn("Message {} moved to dead letter queue for manual processing.", message.getId());
                 redisTemplate.opsForStream().acknowledge(getConsumerGroup(repositoryClass), message);
-                logger.warn("And Message {} acknowledge.", message.getId());
+                logger.warn("And Message {} acknowledged.", message.getId());
             }
         } catch (Exception dlqError) {
-            logger.error("Error moving message to dead letter queue: {}", dlqError.getMessage());
+            logger.error("Error while moving message to dead letter queue: {}", dlqError.getMessage());
         }
     }
 }
