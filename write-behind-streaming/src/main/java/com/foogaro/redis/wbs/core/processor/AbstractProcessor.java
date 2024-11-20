@@ -15,6 +15,7 @@ import org.springframework.data.repository.Repository;
 
 import java.lang.reflect.ParameterizedType;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static com.foogaro.redis.wbs.core.Misc.*;
 
@@ -94,7 +95,7 @@ public abstract class AbstractProcessor<T, R> implements Processor<T, R> {
 
     public void process(final MapRecord<String, String, String> record) throws ProcessMessageException {
         List<Repository<T, ?>> repositories = getRepositories();
-
+        AtomicReference<Exception> exception = new AtomicReference<>();
         repositories.forEach(repo -> {
             try {
                 String content = record.getValue().get(EVENT_CONTENT_KEY);
@@ -110,27 +111,32 @@ public abstract class AbstractProcessor<T, R> implements Processor<T, R> {
                 }
                 logger.info("Processed message: {}", record.getId());
             } catch (Exception e) {
-                logger.error("Error processing message: {}", record.getId(), e);
-                throw new RuntimeException(new ProcessMessageException(e));
+                logger.error("Error processing message: {}\n{}", record.getId(), e.getMessage());
+                exception.set(e);
             }
         });
+        if (exception.get() != null) {
+            throw new ProcessMessageException(exception.get());
+        }
     }
 
     public void acknowledge(final MapRecord<String, String, String> record) throws AcknowledgeMessageException {
-
         List<Repository<T, ?>> repositories = getRepositories();
-
+        AtomicReference<Exception> exception = new AtomicReference<>();
         repositories.forEach(repo -> {
             try {
                 logger.debug("Acknowledging message: {}", record.getId());
                 getRedisTemplate().opsForStream().acknowledge(getConsumerGroup(repositoryClass), record);
                 logger.debug("Acknowledged message: {} for group: {}", record.getId(), getConsumerGroup(repositoryClass));
             } catch (Exception e) {
-                logger.error("Error acknowledging message: {}", record.getId(), e);
+                logger.error("Error acknowledging message: {}\n{}", record.getId(), e.getMessage());
                 // will be picked up by the processPendingMessages method
-                throw new RuntimeException(new AcknowledgeMessageException(e));
+                exception.set(e);
             }
         });
+        if (exception.get() != null) {
+            throw new AcknowledgeMessageException(exception.get());
+        }
     }
 
 }
