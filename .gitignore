@@ -95,3 +95,7 @@ redis-volume/
 images/detected-*
 
 pubsub/pub/Dockerfile.env.values
+
+TODO.md
+
+qodana.yaml
