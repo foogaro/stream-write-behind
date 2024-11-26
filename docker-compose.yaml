@@ -42,7 +42,7 @@ services:
     build:
       context: ./demo/jpa-employer
       dockerfile: Dockerfile
-    image: foogaro/jpa-employer:1.0.0
+    image: foogaro/jpa-employer
     container_name: app
     hostname: app
     restart: unless-stopped
