@@ -28,6 +28,16 @@ curl -X POST http://localhost:8080/api/employers \
   "phone": "3122334455"
 }'
 
+curl -X POST http://localhost:8080/api/employers \
+-H "Content-Type: application/json" \
+-d '{
+  "id": 4,
+  "name": "4Updated Tech Solutions Ltd.",
+  "address": "45678 Future Drive, Innovation City",
+  "email": "4newcontact@techsolutions.com",
+  "phone": "4122334455"
+}'
+
 curl -X PUT http://localhost:8080/api/employers/1 \
 -H "Content-Type: application/json" \
 -d '{
